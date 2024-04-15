@@ -1,6 +1,6 @@
-# Customized CVE FEED Scraper for vuldb.com
+# Customized CVE FEED Notifier
 
-- This tool scrapes the CVE feed from [vuldb.com](https://vuldb.com/?), filters it based on keywords, and notifies via Slack about actionable CVEs that might affect the infrastructure.
+- This tool scrapes the CVE feed from [vuldb.com](https://vuldb.com/?), filters it based on keywords, and notifies via Slack about latest CVE only for the technology or the products you have listed as keywords.
 
 ## What it does?
 
@@ -9,6 +9,12 @@
 - Stores filtered CVEs in a database.
 - Sends a Slack notification for each new CVE inserted into the database.
 
+## Installation
+
+Make sure go environment is properly configured
+```
+go install github.com/dark-warlord14/CVENotifier/CVENotifier@v0.1.1
+```
 ## How to use?
 
 1. Set up keywords and Slack webhook in `config.yaml`:
@@ -20,7 +26,10 @@ slackWebhook:
 - https://hooks.slack.com/services/<id>/<id>
 ```
 
-2. Run the tool on a regular interval (e.g., every few hours) to fetch the latest feeds and receive notifications for new CVEs.
+2. Run the tool on a regular interval (e.g., every few hours) to fetch the latest feeds and receive notifications for new CVEs. Its recommended to setup a cron job for this.
+```
+CVENotifier -config config.yaml
+```
 
 ## Slack Notification
 ![Slack notification](slack.png)
