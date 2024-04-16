@@ -31,6 +31,11 @@ slackWebhook:
 CVENotifier -config config.yaml
 ```
 
+cronjob example
+```
+0 * * * * user CVENotifier -config config.yaml 2>&1 | tee CVENotifier.log
+```
+
 ## Slack Notification
 ![Slack notification](slack.png)
 

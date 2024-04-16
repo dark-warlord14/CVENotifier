@@ -34,21 +34,22 @@ func main() {
 		log.Fatalf("Failed to unmarshal config data: %v", err)
 	}
 
+	fp := gofeed.NewParser()
+	feed, err := fp.ParseURL("https://vuldb.com/?rss.recent")
+	// feed, _ := fp.ParseURL("https://cvefeed.io/rssfeed/latest.xml")
+
+	if feed == nil {
+		log.Fatalf("Failed to parse RSS feed: %v. Please retry", err)
+	}
+
 	databasePath := "CVENotifier.db"
 	dbConn, err := db.InitDB(databasePath)
 
 	if err != nil {
-		log.Printf("Failed to initialize database: %v", err)
+		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
 	defer dbConn.Close()
-
-	fp := gofeed.NewParser()
-	feed, err := fp.ParseURL("https://vuldb.com/?rss.recent")
-	// feed, _ := fp.ParseURL("https://cvefeed.io/rssfeed/latest.xml")
-	if err != nil {
-		log.Printf("Failed to parse RSS feed: %v", err)
-	}
 
 	for _, item := range feed.Items {
 		for _, keyword := range cfg.Keywords {

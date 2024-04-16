@@ -1,5 +1,5 @@
 build:
-	go build -o CVENotifier cmd/main.go
+	go build -o CVENotifier cmd/CVENotifier/main.go
 
 run:
-	go run cmd/main.go
+	go run cmd/CVENotifier/main.go
