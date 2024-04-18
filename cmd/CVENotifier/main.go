@@ -25,7 +25,7 @@ func main() {
 
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		log.Fatalf("Failed to read config file: %v.\nPlease provide the config file using -config flag.\ne.g. go run cmd/main.go -config config.yaml", err)
+		log.Fatalf("Failed to read config file: %v.\nPlease provide the config file using -config flag.\ne.g. go run cmd/CVENotifier/main.go -config config.yaml", err)
 	}
 
 	var cfg Config
