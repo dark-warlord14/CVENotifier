@@ -13,7 +13,7 @@
 
 Make sure go environment is properly configured
 ```
-go install github.com/dark-warlord14/CVENotifier/cmd/CVENotifier@v0.1.2
+go install github.com/dark-warlord14/CVENotifier/cmd/CVENotifier@v0.1.3
 ```
 ## How to use?
 
