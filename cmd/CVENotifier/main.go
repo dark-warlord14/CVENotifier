@@ -54,6 +54,7 @@ func main() {
 	for _, item := range feed.Items {
 		for _, keyword := range cfg.Keywords {
 			if strings.Contains(strings.ToLower(item.Title), strings.ToLower(keyword)) {
+				log.Printf("Matched Keyword: " + keyword)
 				log.Printf("Title: " + item.Title)
 				log.Printf("Link: " + item.Link)
 				log.Printf("Published Date: " + item.Published)
