@@ -79,13 +79,17 @@ func InsertData(dbConn *sql.DB, vulnTitle string, link string, published string,
 
 	statement, err := dbConn.Prepare(insertQuery)
 	if err != nil {
-		return fmt.Errorf("exception occurred: %w", err)
+		return fmt.Errorf("exception occurred within InsertData: %w", err)
 	}
 	defer statement.Close()
 
 	_, err = statement.Exec(vulnTitle, link, published, categories)
 	if err != nil {
-		return fmt.Errorf("exception occurred: %w", err)
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return fmt.Errorf("entry already exists in DB, skipping")
+		}
+
+		return fmt.Errorf("exception occurred during db insertion: %w", err)
 	}
 
 	log.Println("Insert Completed")
@@ -110,7 +114,7 @@ func notifySlack(vulnTitle string, link string, published string, categories str
 	// Make POST request to Slack webhook
 	resp, err := http.Post(slackWebhook, "application/json", bytes.NewBuffer(payload))
 	if err != nil {
-		log.Println("Failed to send message:", err)
+		log.Println("Failed to send message, check if slack webhook is valid:", err)
 		return
 	}
 	defer resp.Body.Close()

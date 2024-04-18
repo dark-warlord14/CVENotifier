@@ -51,9 +51,13 @@ func main() {
 
 	defer dbConn.Close()
 
+	var matchFound = 0
+
 	for _, item := range feed.Items {
 		for _, keyword := range cfg.Keywords {
 			if strings.Contains(strings.ToLower(item.Title), strings.ToLower(keyword)) {
+				matchFound++
+
 				log.Printf("Matched Keyword: " + keyword)
 				log.Printf("Title: " + item.Title)
 				log.Printf("Link: " + item.Link)
@@ -61,9 +65,13 @@ func main() {
 				log.Printf("Categories: " + strings.Join(item.Categories, ","))
 
 				if err := db.InsertData(dbConn, item.Title, item.Link, item.Published, strings.Join(item.Categories, ","), cfg.SlackWebhook[0]); err != nil {
-					log.Printf("Failed to insert data into database: %v", err)
+					log.Printf("Result: %v", err)
 				}
 			}
 		}
+	}
+
+	if matchFound == 0 {
+		log.Printf("Result: No CVE matches found in the vuldb RSS feed")
 	}
 }
