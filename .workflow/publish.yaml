@@ -1,0 +1,22 @@
+name: Publish to pkg.go.dev
+
+on:
+  push:
+    tags:
+      - v*.**
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish a new version to pkg.go.dev
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491
+        with:
+          go-version: 'stable'
+
+      - name: Publish on pkg.go.dev
+        run: GOPROXY=proxy.golang.org go list -m github.com/dark-warlord14/CVENotifier/v@${{ github.ref_name }}
