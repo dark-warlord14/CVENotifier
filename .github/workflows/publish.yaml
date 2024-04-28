@@ -3,13 +3,12 @@ name: Publish to pkg.go.dev
 on:
   push:
     tags:
-      - v*.**
-
-permissions:
-  contents: read
+      - v*
 
 jobs:
   publish:
+    permissions:
+      contents: read
     name: Publish a new version to pkg.go.dev
     runs-on: ubuntu-latest
     steps:
@@ -19,4 +18,4 @@ jobs:
           go-version: 'stable'
 
       - name: Publish on pkg.go.dev
-        run: GOPROXY=proxy.golang.org go list -m github.com/dark-warlord14/CVENotifier/v@${{ github.ref_name }}
+        run: GOPROXY=proxy.golang.org go list -m github.com/dark-warlord14/CVENotifier@${{ github.ref_name }}
