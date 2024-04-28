@@ -1,3 +1,5 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/dark-warlord14/CVEnotifier)](https://goreportcard.com/report/github.com/dark-warlord14/CVEnotifier)
+
 # Customized CVE FEED Notifier
 
 - This tool scrapes the CVE feed from [vuldb.com](https://vuldb.com/?), filters it based on keywords, and notifies via Slack about latest CVE only for the technology or the products you have listed as keywords.
