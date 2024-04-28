@@ -1,3 +1,4 @@
+[![Go Reference](https://pkg.go.dev/badge/github.com/dark-warlord14/CVENotifier.svg)](https://pkg.go.dev/github.com/dark-warlord14/CVENotifier)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dark-warlord14/CVEnotifier)](https://goreportcard.com/report/github.com/dark-warlord14/CVEnotifier)
 
 # Customized CVE FEED Notifier
