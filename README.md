@@ -36,7 +36,7 @@ CVENotifier -config config.yaml
 
 cronjob example
 ```
-0 * * * * user CVENotifier -config config.yaml 2>&1 | tee CVENotifier.log
+0 * * * * user CVENotifier -config config.yaml 2>&1 | tee -a CVENotifier.log
 ```
 
 ## Slack Notification
