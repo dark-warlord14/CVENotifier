@@ -55,6 +55,18 @@ cronjob example
 - [x] Store the data in a database if a keyword is found in the title
 - [x] Send a Slack message if the insert operation is successful
 
-## Enhancement & Refactoring
+## Package Structure
 
-- [ ] Move the metadata to structure for easy parsing and shorter lines xD
+The project is now organized into the following packages:
+
+*   `cmd/CVENotifier`: Contains the main application logic.
+*   `internal/config`: Contains the configuration loading logic.
+*   `internal/rss`: Contains the RSS feed parsing logic.
+*   `internal/slack`: Contains the Slack notification logic.
+*   `internal/util`: Contains utility functions such as HTML tag removal.
+*   `internal/db`: Contains the database operations logic.
+*   `internal/errors`: Contains custom error types.
+
+## Error Handling
+
+The project now uses custom error types to provide more descriptive error messages.

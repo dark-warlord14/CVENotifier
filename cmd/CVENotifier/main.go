@@ -3,14 +3,16 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"strings"
 
+	"github.com/dark-warlord14/CVENotifier/internal/config"
 	"github.com/dark-warlord14/CVENotifier/internal/db"
+	"github.com/dark-warlord14/CVENotifier/internal/errors"
+	"github.com/dark-warlord14/CVENotifier/internal/rss"
 	"github.com/joho/godotenv"
-	"github.com/mmcdole/gofeed"
-	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
@@ -28,29 +30,20 @@ func main() {
 	flag.StringVar(&configPath, "config", "config.yaml", "Path to the configuration YAML file")
 	flag.Parse()
 
-	data, err := os.ReadFile(configPath)
+	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
-		log.Fatalf("main: Failed to read config file: %v.\nPlease provide the config file using -config flag.\ne.g. go run cmd/CVENotifier/main.go -config config.yaml", err)
+		log.Fatalf("main: %v", err)
 	}
 
-	var cfg Config
-
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		log.Fatalf("main: Failed to unmarshal config data: %v", err)
-	}
-
-	fp := gofeed.NewParser()
-	feed, err := fp.ParseURL("https://vuldb.com/?rss.recent")
-	// feed, _ := fp.ParseURL("https://cvefeed.io/rssfeed/latest.xml")
-
-	if feed == nil {
-		log.Fatalf("main: Failed to parse RSS feed: %v", err)
+	feed, err := rss.ParseFeed("https://vuldb.com/?rss.recent")
+	if err != nil {
+		log.Fatalf("main: %v", err)
 	}
 
 	databasePath := "CVENotifier.db"
 	dbConn, err := db.InitDB(databasePath)
 	if err != nil {
-		log.Fatalf("main: Failed to initialize database: %v", err)
+		log.Fatalf("main: %v", err)
 	}
 	defer dbConn.Close()
 
@@ -80,13 +73,17 @@ func main() {
 
 				err = db.InsertData(dbConn, item.Title, item.Link, item.Published, strings.Join(item.Categories, ","), description, slackWebhook)
 				if err != nil {
-					log.Printf("main: Result: %v", err)
+					if _, ok := err.(*errors.SlackNotificationError); ok {
+						log.Printf("main: Failed to send Slack notification: %v", err)
+					} else {
+						log.Printf("main: Failed to insert data: %v", err)
+					}
 				}
 			}
 		}
 	}
 
 	if matchFound == 0 {
-		log.Printf("main: Result: No CVE matches found in the vuldb RSS feed")
+		fmt.Printf("main: Result: No CVE matches found in the vuldb RSS feed\n")
 	}
 }
