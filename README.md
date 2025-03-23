@@ -20,19 +20,25 @@ go install github.com/dark-warlord14/CVENotifier/cmd/CVENotifier@latest
 ```
 ## How to use?
 
-1. Set up keywords and Slack webhook in `config.yaml`:
-```yaml
-keywords:
-- Floodlight
-- wordpress
-slackWebhook:
-- https://hooks.slack.com/services/<id>/<id>
-```
+1.  Set the `SLACK_WEBHOOK` environment variable with your Slack webhook URL. For example:
 
-2. Run the tool on a regular interval (e.g., every few hours) to fetch the latest feeds and receive notifications for new CVEs. Its recommended to setup a cron job for this.
-```
-CVENotifier -config config.yaml
-```
+    ```bash
+    export SLACK_WEBHOOK=https://hooks.slack.com/services/<id>/<id>
+    ```
+
+2.  Set up keywords in `config.yaml`:
+
+    ```yaml
+    keywords:
+      - Floodlight
+      - wordpress
+    ```
+
+3.  Run the tool on a regular interval (e.g., every few hours) to fetch the latest feeds and receive notifications for new CVEs. It's recommended to set up a cron job for this.
+
+    ```bash
+    CVENotifier -config config.yaml
+    ```
 
 cronjob example
 ```
