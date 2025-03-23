@@ -3,53 +3,54 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"strings"
 
+	"github.com/dark-warlord14/CVENotifier/internal/config"
 	"github.com/dark-warlord14/CVENotifier/internal/db"
-	"github.com/mmcdole/gofeed"
-	"gopkg.in/yaml.v3"
+	"github.com/dark-warlord14/CVENotifier/internal/errors"
+	"github.com/dark-warlord14/CVENotifier/internal/rss"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Keywords     []string `yaml:"keywords"`
-	SlackWebhook []string `yaml:"slackWebhook"`
+	Keywords []string `yaml:"keywords"`
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("main: Error loading .env file: %v", err)
+	}
+
 	var configPath string
 
 	flag.StringVar(&configPath, "config", "config.yaml", "Path to the configuration YAML file")
 	flag.Parse()
 
-	data, err := os.ReadFile(configPath)
+	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
-		log.Fatalf("Failed to read config file: %v.\nPlease provide the config file using -config flag.\ne.g. go run cmd/CVENotifier/main.go -config config.yaml", err)
+		log.Fatalf("main: %v", err)
 	}
 
-	var cfg Config
-
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		log.Fatalf("Failed to unmarshal config data: %v", err)
-	}
-
-	fp := gofeed.NewParser()
-	feed, err := fp.ParseURL("https://vuldb.com/?rss.recent")
-	// feed, _ := fp.ParseURL("https://cvefeed.io/rssfeed/latest.xml")
-
-	if feed == nil {
-		log.Fatalf("Failed to parse RSS feed: %v. Please retry", err)
+	feed, err := rss.ParseFeed("https://vuldb.com/?rss.recent")
+	if err != nil {
+		log.Fatalf("main: %v", err)
 	}
 
 	databasePath := "CVENotifier.db"
 	dbConn, err := db.InitDB(databasePath)
-
 	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
+		log.Fatalf("main: %v", err)
 	}
-
 	defer dbConn.Close()
+
+	slackWebhook := os.Getenv("SLACK_WEBHOOK")
+	if slackWebhook == "" {
+		log.Fatalf("main: SLACK_WEBHOOK environment variable not set")
+	}
 
 	var matchFound = 0
 
@@ -63,15 +64,26 @@ func main() {
 				log.Printf("Link: " + item.Link)
 				log.Printf("Published Date: " + item.Published)
 				log.Printf("Categories: " + strings.Join(item.Categories, ","))
+				log.Printf("Description: " + item.Description)
 
-				if err := db.InsertData(dbConn, item.Title, item.Link, item.Published, strings.Join(item.Categories, ","), cfg.SlackWebhook[0]); err != nil {
-					log.Printf("Result: %v", err)
+				description := item.Description
+				if description == "" {
+					description = "No description available."
+				}
+
+				err = db.InsertData(dbConn, item.Title, item.Link, item.Published, strings.Join(item.Categories, ","), description, slackWebhook)
+				if err != nil {
+					if _, ok := err.(*errors.SlackNotificationError); ok {
+						log.Printf("main: Failed to send Slack notification: %v", err)
+					} else {
+						log.Printf("main: Failed to insert data: %v", err)
+					}
 				}
 			}
 		}
 	}
 
 	if matchFound == 0 {
-		log.Printf("Result: No CVE matches found in the vuldb RSS feed")
+		fmt.Printf("main: Result: No CVE matches found in the vuldb RSS feed\n")
 	}
 }

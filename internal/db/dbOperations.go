@@ -1,45 +1,29 @@
 package db
 
 import (
-	"bytes"
 	"database/sql"
-	"encoding/json"
 	"fmt"
-	"log"
-	"net/http"
 	"strings"
+
+	"github.com/dark-warlord14/CVENotifier/internal/errors"
+	"github.com/dark-warlord14/CVENotifier/internal/slack"
 
 	// importing sqlite3.
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const (
-	Ldate         = 1 << iota     // the date in the local time zone: 2009/01/23
-	Ltime                         // the time in the local time zone: 01:23:23
-	Lmicroseconds                 // microsecond resolution: 01:23:23.123123.  assumes Ltime.
-	Llongfile                     // full file name and line number: /a/b/c/d.go:23
-	Lshortfile                    // final file name element and line number: d.go:23. overrides Llongfile
-	LUTC                          // if Ldate or Ltime is set, use UTC rather than the local time zone
-	Lmsgprefix                    // move the "prefix" from the beginning of the line to before the message
-	LstdFlags     = Ldate | Ltime // initial values for the standard logger
-)
-
-type SlackMessage struct {
-	Text string `json:"text"`
-}
-
 func InitDB(dbPath string) (*sql.DB, error) {
 	dbConn, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
-		return nil, fmt.Errorf("exception occurred: %w", err)
+		return nil, &errors.DatabaseError{Message: fmt.Sprintf("InitDB: %s", err.Error())}
 	}
 
 	if err := dbConn.Ping(); err != nil {
 		dbConn.Close()
-		return nil, fmt.Errorf("exception occurred: %w", err)
+		return nil, &errors.DatabaseError{Message: fmt.Sprintf("InitDB: %s", err.Error())}
 	}
 
-	log.Println("Connected to DB")
+	//log.Println("Connected to DB")
 
 	if err := CreateTable(dbConn); err != nil {
 		dbConn.Close()
@@ -60,69 +44,44 @@ func CreateTable(dbConn *sql.DB) error {
 
 	statement, err := dbConn.Prepare(createVulnDBTableSQL)
 	if err != nil {
-		return fmt.Errorf("exception occurred: %w", err)
+		return &errors.DatabaseError{Message: fmt.Sprintf("CreateTable: %s", err.Error())}
 	}
 	defer statement.Close()
 
 	_, err = statement.Exec()
 	if err != nil {
-		return fmt.Errorf("exception occurred: %w", err)
+		return &errors.DatabaseError{Message: fmt.Sprintf("CreateTable: %s", err.Error())}
 	}
 
-	log.Println("vulndb table created successfully")
+	//log.Println("vulndb table created successfully")
 
 	return nil
 }
 
-func InsertData(dbConn *sql.DB, vulnTitle string, link string, published string, categories string, slackWebhook string) error {
+func InsertData(dbConn *sql.DB, vulnTitle string, link string, published string, categories string, description string, slackWebhook string) error {
 	insertQuery := `INSERT INTO vulndb (vuln_title, link, published, categories) VALUES (?, ?, ?, ?)`
 
 	statement, err := dbConn.Prepare(insertQuery)
 	if err != nil {
-		return fmt.Errorf("exception occurred within InsertData: %w", err)
+		return &errors.DatabaseError{Message: fmt.Sprintf("InsertData: %s", err.Error())}
 	}
 	defer statement.Close()
 
 	_, err = statement.Exec(vulnTitle, link, published, categories)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-			return fmt.Errorf("entry already exists in DB, skipping")
+			return &errors.DatabaseError{Message: "InsertData: entry already exists in DB, skipping"}
 		}
 
-		return fmt.Errorf("exception occurred during db insertion: %w", err)
+		return &errors.DatabaseError{Message: fmt.Sprintf("InsertData: %s", err.Error())}
 	}
 
-	log.Println("Insert Completed")
-	notifySlack(vulnTitle, link, published, categories, slackWebhook)
+	//log.Println("Insert Completed")
+	err = slack.NotifySlack(vulnTitle, link, published, categories, description, slackWebhook)
+	if err != nil {
+		//log.Println("InsertData: Failed to send Slack notification:", err)
+		return err
+	}
 
 	return nil
-}
-
-func notifySlack(vulnTitle string, link string, published string, categories string, slackWebhook string) {
-	message := SlackMessage{
-		Text: "Title: " + vulnTitle + "\nLink: " + link + "\nDate Published: " + published + "\n" + strings.ReplaceAll(categories,
-			",", "\n"),
-	}
-
-	// Encode message payload as JSON
-	payload, err := json.Marshal(message)
-	if err != nil {
-		log.Println("Failed to marshal message:", err)
-		return
-	}
-
-	// Make POST request to Slack webhook
-	resp, err := http.Post(slackWebhook, "application/json", bytes.NewBuffer(payload))
-	if err != nil {
-		log.Println("Failed to send message, check if slack webhook is valid:", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		log.Println("Failed to send message, status code:", resp.StatusCode)
-		return
-	}
-
-	log.Println("Message sent successfully!")
 }
